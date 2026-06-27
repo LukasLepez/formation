@@ -8,6 +8,10 @@ wheels/
 
 # Virtual environments
 .venv
+backend/.venv
+frontend/node_modules/
 
 # Generated ingestion artifacts
-artifacts/ingestions/incidents/
+backend/artifacts/ingestions/incidents/
+backend/artifacts/pipeline-runs/
+backend/artifacts/gold-datasets/

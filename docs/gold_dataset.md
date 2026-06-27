@@ -512,7 +512,7 @@ print(f"{gold.shape[0]:,} lignes × {gold.shape[1]} colonnes")
 print(gold['split_set'].value_counts())
 ```
 
-Le CSV `gold-dataset/gold_dataset_YYYYMMDDHHMMSS.csv` sert de traçabilité et peut être rechargé via `pd.read_csv()`, mais la source canonique pour l'entraînement est la base de données.
+Le CSV `backend/artifacts/gold-datasets/YYYYMMDDHHMMSS_gold_dataset/gold_dataset_YYYYMMDDHHMMSS.csv` sert de traçabilité et peut être rechargé via `pd.read_csv()`, mais la source canonique pour l'entraînement est la base de données.
 
 ---
 
@@ -521,20 +521,28 @@ Le CSV `gold-dataset/gold_dataset_YYYYMMDDHHMMSS.csv` sert de traçabilité et p
 Le pipeline peut être lancé couche par couche depuis la CLI :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer bronze  # charge les sources dans bronze
+cd backend
 uv run build-gold-dataset --layer silver  # lit bronze et écrit silver
+cd backend
 uv run build-gold-dataset --layer gold    # lit silver et écrit gold + CSV
+cd backend
 uv run build-gold-dataset --layer all     # défaut : bronze puis silver puis gold
 ```
 
 `--stage` est un alias de `--layer`. Les couches `silver` et `gold` supposent que leurs dépendances existent déjà en base si elles sont lancées seules.
 
-La structure relationnelle est portée par SQLAlchemy dans `src/indusense/db/models.py` et par Alembic dans `alembic/versions/0001_structure_bronze_silver_gold.py`.
+La structure relationnelle est portée par SQLAlchemy dans `backend/src/indusense/db/models.py` et par Alembic dans `backend/alembic/versions/0001_structure_bronze_silver_gold.py`.
 
-La table `gold.gold_dataset` stocke les identifiants machine-heure en colonnes dédiées, puis les variables explicatives dans `features` JSONB et les cibles dans `labels` JSONB. Le chargeur `load_gold_from_db()` reconstruit automatiquement le DataFrame large attendu par les notebooks et l'entraînement.
+La table `gold.gold_dataset` est écrite au format large : elle contient toutes les colonnes du DataFrame Gold final, y compris les variables explicatives et les labels. Le CSV généré dans `backend/artifacts/gold-datasets/` contient les mêmes colonnes.
 
 Les couches `bronze` et `silver` appliquent une règle d'anonymisation avant écriture en base : les colonnes `operator_name` et `operator_badge` ne sont pas persistées. La base conserve `operator_key`, une clé aléatoire non réversible générée en mémoire pendant le run. Le champ métier `comment` reste disponible en Bronze/Silver pour audit ou analyse qualité, mais il n'entre pas dans les features Gold décrites ici.
 
 ---
 
-*Document généré à partir du pipeline `src/indusense/processing/ingestion.py` — fonction `run_layer_pipeline()`.*
+*Document généré à partir du pipeline `backend/src/indusense/processing/ingestion.py` — fonction `run_layer_pipeline()`.*
+
+
+
+

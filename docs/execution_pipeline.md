@@ -26,12 +26,14 @@ Le script démarre automatiquement PostgreSQL et pgAdmin via Docker Compose, sau
 Pour générer toute la chaîne de données, lancer :
 
 ```powershell
+cd backend
 uv run build-gold-dataset
 ```
 
 Cette commande est équivalente à :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer all
 ```
 
@@ -60,6 +62,7 @@ Le champ métier `comment` est conservé en Bronze/Silver pour audit et analyse 
 ### Bronze uniquement
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer bronze
 ```
 
@@ -74,6 +77,7 @@ Puis elle remplit les tables du schéma PostgreSQL `bronze`.
 ### Silver uniquement
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer silver
 ```
 
@@ -82,19 +86,24 @@ Cette commande suppose que la couche `bronze` existe déjà en base. Elle lit `b
 ### Gold uniquement
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer gold
 ```
 
-Cette commande suppose que la couche `silver` existe déjà en base. Elle construit le dataset final, écrit la table `gold.gold_dataset` et génère un CSV de traçabilité dans `gold-dataset/`.
+Cette commande suppose que la couche `silver` existe déjà en base. Elle construit le dataset final, écrit la table `gold.gold_dataset` et génère un CSV de traçabilité dans `backend/artifacts/gold-datasets/`.
 
 ## Alias `--stage`
 
 `--stage` peut être utilisé à la place de `--layer` :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --stage all
+cd backend
 uv run build-gold-dataset --stage bronze
+cd backend
 uv run build-gold-dataset --stage silver
+cd backend
 uv run build-gold-dataset --stage gold
 ```
 
@@ -103,13 +112,14 @@ uv run build-gold-dataset --stage gold
 Pour construire le dataset Gold depuis les fichiers sources, sans écrire en base :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer gold --no-db
 ```
 
 Cette commande génère uniquement un fichier CSV :
 
 ```text
-gold-dataset/gold_dataset_YYYYMMDDHHMMSS.csv
+backend/artifacts/gold-datasets/YYYYMMDDHHMMSS_gold_dataset/gold_dataset_YYYYMMDDHHMMSS.csv
 ```
 
 Elle est pratique pour vérifier rapidement le pipeline sans Docker/PostgreSQL.
@@ -121,18 +131,21 @@ Elle est pratique pour vérifier rapidement le pipeline sans Docker/PostgreSQL.
 Si PostgreSQL est déjà lancé :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer all --no-docker
 ```
 
 ### Utiliser une autre base
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer all --database-url "postgresql+psycopg://user:password@host:5432/database"
 ```
 
 ### Changer les chemins sources
 
 ```powershell
+cd backend
 uv run build-gold-dataset `
   --telemetry data/telemetry.csv `
   --incidents data/releves_incidents.csv `
@@ -142,12 +155,14 @@ uv run build-gold-dataset `
 ### Changer le dossier de sortie CSV
 
 ```powershell
-uv run build-gold-dataset --layer gold --output-dir gold-dataset
+cd backend
+uv run build-gold-dataset --layer gold --output-dir artifacts/gold-datasets
 ```
 
 ### Logs plus détaillés
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer all --log-level DEBUG
 ```
 
@@ -168,7 +183,7 @@ Après une exécution complète, PostgreSQL contient :
 La couche Gold produit aussi un CSV de traçabilité :
 
 ```text
-gold-dataset/gold_dataset_YYYYMMDDHHMMSS.csv
+backend/artifacts/gold-datasets/YYYYMMDDHHMMSS_gold_dataset/gold_dataset_YYYYMMDDHHMMSS.csv
 ```
 
 Le dataset Gold peut être rechargé en Python avec :
@@ -187,6 +202,7 @@ print(gold.shape)
 Lancer Docker Desktop manuellement, puis relancer :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer all
 ```
 
@@ -195,7 +211,9 @@ uv run build-gold-dataset --layer all
 Vérifier que `bronze` a déjà été généré :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer bronze
+cd backend
 uv run build-gold-dataset --layer silver
 ```
 
@@ -204,7 +222,9 @@ uv run build-gold-dataset --layer silver
 Vérifier que `silver` existe déjà :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer silver
+cd backend
 uv run build-gold-dataset --layer gold
 ```
 
@@ -213,5 +233,9 @@ uv run build-gold-dataset --layer gold
 Pour isoler les problèmes PostgreSQL/Docker :
 
 ```powershell
+cd backend
 uv run build-gold-dataset --layer gold --no-db
 ```
+
+
+
