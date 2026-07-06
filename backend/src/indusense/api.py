@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import shutil
 import sys
 import threading
 import traceback
@@ -369,6 +370,18 @@ def list_maintenance_ml_runs() -> list[MaintenanceMlRunInfo]:
 @app.get("/maintenance-ml-runs/{run_id}", response_model=MaintenanceMlRunInfo)
 def get_maintenance_ml_run(run_id: str) -> MaintenanceMlRunInfo:
     return read_existing_ml_metadata(run_id)
+
+
+@app.delete("/maintenance-ml-runs/{run_id}", response_model=dict[str, str])
+def delete_maintenance_ml_run(run_id: str) -> dict[str, str]:
+    info = read_existing_ml_metadata(run_id)
+    if info.status in {"queued", "running"}:
+        raise HTTPException(status_code=409, detail="Impossible de supprimer un run ML encore en cours.")
+    run_dir = PROJECT_DIR / info.run_dir
+    if not run_dir.resolve().is_relative_to(ML_RUNS_DIR.resolve()):
+        raise HTTPException(status_code=400, detail="Chemin du run ML invalide.")
+    shutil.rmtree(run_dir)
+    return {"status": "deleted", "run_id": run_id}
 
 
 @app.get("/maintenance-ml-runs/{run_id}/report", response_model=MaintenanceMlReport)
