@@ -8,12 +8,15 @@ dependencies = [
     "alembic>=1.17.2",
     "fastapi>=0.138.0",
     "matplotlib>=3.10.3",
-    "pandas>=3.0.3",
+    "mlflow>=3.1.0",
+    "pandas>=2.2,<3",
     "psycopg[binary]>=3.2.9",
     "python-dotenv>=1.1.0",
     "seaborn>=0.13.2",
     "sqlalchemy>=2.0.41",
+    "scikit-learn>=1.7.0",
     "uvicorn>=0.49.0",
+    "xgboost>=3.0.0",
 ]
 
 [project.scripts]

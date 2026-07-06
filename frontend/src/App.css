@@ -43,15 +43,25 @@ body {
   min-height: 40px;
   padding: 8px 10px;
   color: #cbd5e1;
+  font: inherit;
+  text-align: left;
   border: 1px solid transparent;
   border-radius: 6px;
+  background: transparent;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .navLink:hover {
   color: #f8fafc;
   background: #141821;
   border-color: #252b36;
+}
+
+.navLinkActive {
+  color: #f8fafc;
+  background: #141821;
+  border-color: #334155;
 }
 
 .navStatus {
@@ -62,7 +72,7 @@ body {
   align-self: flex-start;
 }
 
-.ingestionShell {
+.pageShell {
   min-height: 100vh;
   padding: 24px;
   scroll-behavior: smooth;
@@ -105,9 +115,46 @@ body {
   align-items: start;
 }
 
+.minWidth0,
+.panel {
+  min-width: 0;
+}
+
+.modelMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.modelMetaItem {
+  min-width: 0;
+  padding: 10px 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.modelMetaItem p,
+.modelMetaItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaHelper {
+  display: block;
+  margin-top: 2px;
+}
+
 .dataGrid {
   display: grid;
   grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.confusionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -116,6 +163,32 @@ body {
   background: #10141c;
   border: 1px solid #252b36;
   border-radius: 6px;
+}
+
+.comparisonTable {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.comparisonTable th,
+.comparisonTable td {
+  white-space: normal;
+  min-width: 120px;
+}
+
+.comparisonTable th:first-child,
+.comparisonTable td:first-child {
+  min-width: 150px;
+}
+
+.truncateChip {
+  max-width: min(100%, 720px);
+}
+
+.truncateChip .MuiChip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pathText {
@@ -173,7 +246,7 @@ body {
     display: none;
   }
 
-  .ingestionShell {
+  .pageShell {
     padding: 16px;
   }
 
@@ -183,7 +256,9 @@ body {
   }
 
   .summaryGrid,
-  .workGrid {
+  .workGrid,
+  .modelMetaGrid,
+  .confusionGrid {
     grid-template-columns: 1fr;
   }
 }

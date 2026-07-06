@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
 from indusense.artifacts import RUN_INDEX_JSON
+from indusense.maintenance_ml import DEFAULT_LABEL, MaintenanceMlConfig, train_maintenance_models
 from indusense.processing.ingestion import (
     DEFAULT_DATABASE_URL,
     GoldDatasetConfig,
@@ -35,6 +36,7 @@ from indusense.reporting.graphs import generate_graph_report
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 RUNS_DIR = PROJECT_DIR / "artifacts" / "pipeline-runs"
 GOLD_DIR = PROJECT_DIR / "artifacts" / "gold-datasets"
+ML_RUNS_DIR = PROJECT_DIR / "artifacts" / "maintenance-ml-runs"
 LOGGER = logging.getLogger(__name__)
 DOCKER_START_LOCK = threading.Lock()
 
@@ -52,6 +54,7 @@ TABLES_BY_LAYER = {
 async def lifespan(_: FastAPI):
     load_dotenv(PROJECT_DIR / ".env")
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    ML_RUNS_DIR.mkdir(parents=True, exist_ok=True)
     if os.getenv("INDUSENSE_API_START_DOCKER", "1") != "0":
         threading.Thread(target=start_docker_compose_for_api, daemon=True).start()
     yield
@@ -172,6 +175,50 @@ class GoldCsvInfo(BaseModel):
     size_bytes: int
 
 
+class MaintenanceMlRunCreate(BaseModel):
+    """Paramètres d'un entraînement B5 depuis un CSV Gold généré."""
+
+    label_column: str = DEFAULT_LABEL
+    gold_run_name: str | None = None
+    random_forest_balanced: bool = True
+
+
+class MaintenanceMlRunInfo(BaseModel):
+    """État persisté d'un entraînement de maintenance prédictive."""
+
+    run_id: str
+    status: RunStatus
+    label_column: str
+    gold_run_name: str | None = None
+    random_forest_balanced: bool = True
+    created_at: str
+    started_at: str | None = None
+    finished_at: str | None = None
+    rows: int | None = None
+    features: int | None = None
+    best_model: str | None = None
+    error: str | None = None
+    run_dir: str
+    log_path: str
+
+
+class MaintenanceMlReport(BaseModel):
+    run_id: str
+    status: str
+    gold_run_name: str
+    gold_csv_path: str
+    label_column: str
+    rows: int
+    features: int
+    class_balance: dict[str, Any]
+    scale_pos_weight: float
+    random_forest_balanced: bool = True
+    mlflow_tracking_uri: str
+    results: list[dict[str, Any]]
+    best_model: str
+    conclusion: str
+
+
 def main() -> None:
     """Lance l'API locale via ``uv run indusense-api``."""
 
@@ -283,6 +330,63 @@ def download_gold_csv(run_name: str) -> FileResponse:
         filename=csv_path.name,
         media_type="text/csv",
     )
+
+
+@app.post("/maintenance-ml-runs", response_model=MaintenanceMlRunInfo)
+def create_maintenance_ml_run(payload: MaintenanceMlRunCreate) -> MaintenanceMlRunInfo:
+    run_id = "maintenance_ml_" + datetime.now().strftime("%Y%m%d%H%M%S") + "_" + uuid.uuid4().hex[:8]
+    run_dir = ML_RUNS_DIR / run_id
+    run_dir.mkdir(parents=True, exist_ok=False)
+    log_path = run_dir / "maintenance_ml.log"
+    log_path.write_text("", encoding="utf-8")
+
+    info = MaintenanceMlRunInfo(
+        run_id=run_id,
+        status="queued",
+        label_column=payload.label_column,
+        gold_run_name=payload.gold_run_name,
+        random_forest_balanced=payload.random_forest_balanced,
+        created_at=utc_now(),
+        run_dir=str(run_dir.relative_to(PROJECT_DIR)),
+        log_path=str(log_path.relative_to(PROJECT_DIR)),
+    )
+    write_ml_metadata(run_dir, info)
+    threading.Thread(target=execute_maintenance_ml_run, args=(run_dir, payload), daemon=True).start()
+    return info
+
+
+@app.get("/maintenance-ml-runs", response_model=list[MaintenanceMlRunInfo])
+def list_maintenance_ml_runs() -> list[MaintenanceMlRunInfo]:
+    runs = []
+    for path in sorted(ML_RUNS_DIR.glob("maintenance_ml_*/metadata.json"), reverse=True):
+        try:
+            runs.append(MaintenanceMlRunInfo(**json.loads(path.read_text(encoding="utf-8"))))
+        except Exception:
+            LOGGER.warning("Le fichier de métadonnées ML %s a été ignoré car il est illisible.", path)
+    return runs
+
+
+@app.get("/maintenance-ml-runs/{run_id}", response_model=MaintenanceMlRunInfo)
+def get_maintenance_ml_run(run_id: str) -> MaintenanceMlRunInfo:
+    return read_existing_ml_metadata(run_id)
+
+
+@app.get("/maintenance-ml-runs/{run_id}/report", response_model=MaintenanceMlReport)
+def get_maintenance_ml_report(run_id: str) -> MaintenanceMlReport:
+    info = read_existing_ml_metadata(run_id)
+    report_path = PROJECT_DIR / info.run_dir / "report.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Rapport ML introuvable pour ce run.")
+    return MaintenanceMlReport(**json.loads(report_path.read_text(encoding="utf-8")))
+
+
+@app.get("/maintenance-ml-runs/{run_id}/logs/raw", response_class=PlainTextResponse)
+def get_raw_maintenance_ml_logs(run_id: str) -> str:
+    info = read_existing_ml_metadata(run_id)
+    log_path = PROJECT_DIR / info.log_path
+    if not log_path.exists():
+        raise HTTPException(status_code=404, detail="Fichier de logs ML introuvable.")
+    return log_path.read_text(encoding="utf-8", errors="replace")
 
 
 @app.post("/docker/start")
@@ -541,6 +645,52 @@ def execute_graph_run(run_dir: Path, payload: GraphRunCreate) -> None:
         file_handler.close()
 
 
+def execute_maintenance_ml_run(run_dir: Path, payload: MaintenanceMlRunCreate) -> None:
+    info = read_ml_metadata(run_dir)
+    info.status = "running"
+    info.started_at = utc_now()
+    write_ml_metadata(run_dir, info)
+
+    log_path = run_dir / "maintenance_ml.log"
+    file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s | %(levelname)-8s | %(name)s | %(message)s", "%Y-%m-%d %H:%M:%S")
+    )
+    root_logger = logging.getLogger()
+    previous_level = root_logger.level
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(file_handler)
+    try:
+        LOGGER.info("Le run ML %s démarre avec la cible %s.", info.run_id, payload.label_column)
+        report = train_maintenance_models(
+            MaintenanceMlConfig(
+                gold_dir=GOLD_DIR,
+                run_dir=run_dir,
+                label_column=payload.label_column,
+                gold_run_name=payload.gold_run_name,
+                random_forest_balanced=payload.random_forest_balanced,
+            )
+        )
+        info.rows = report["rows"]
+        info.features = report["features"]
+        info.gold_run_name = report["gold_run_name"]
+        info.random_forest_balanced = report["random_forest_balanced"]
+        info.best_model = report["best_model"]
+        info.status = "success"
+        LOGGER.info("Le run ML %s est terminé. Meilleur modèle : %s.", info.run_id, info.best_model)
+    except Exception as error:  # noqa: BLE001 - on persiste l'erreur du run ML.
+        info.status = "failed"
+        info.error = str(error)
+        LOGGER.error("Le run ML %s a échoué : %s", info.run_id, error)
+        LOGGER.debug("Traceback du run ML:\n%s", traceback.format_exc())
+    finally:
+        info.finished_at = utc_now()
+        write_ml_metadata(run_dir, info)
+        root_logger.removeHandler(file_handler)
+        root_logger.setLevel(previous_level)
+        file_handler.close()
+
+
 def read_existing_metadata(run_id: str) -> RunInfo:
     run_dir = RUNS_DIR / run_id
     if not run_dir.exists():
@@ -569,6 +719,20 @@ def read_graph_metadata(run_dir: Path) -> GraphRunInfo:
     return GraphRunInfo(**json.loads(metadata_path.read_text(encoding="utf-8")))
 
 
+def read_existing_ml_metadata(run_id: str) -> MaintenanceMlRunInfo:
+    run_dir = ML_RUNS_DIR / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail="Run ML introuvable.")
+    return read_ml_metadata(run_dir)
+
+
+def read_ml_metadata(run_dir: Path) -> MaintenanceMlRunInfo:
+    metadata_path = run_dir / "metadata.json"
+    if not metadata_path.exists():
+        raise HTTPException(status_code=404, detail="Métadonnées du run ML introuvables.")
+    return MaintenanceMlRunInfo(**json.loads(metadata_path.read_text(encoding="utf-8")))
+
+
 def resolve_gold_csv_path(run_name: str) -> Path:
     if "/" in run_name or "\\" in run_name or ".." in run_name:
         raise HTTPException(status_code=400, detail="Nom de run Gold invalide.")
@@ -582,6 +746,13 @@ def resolve_gold_csv_path(run_name: str) -> Path:
 
 
 def write_metadata(run_dir: Path, info: RunInfo) -> None:
+    (run_dir / "metadata.json").write_text(
+        json.dumps(info.model_dump(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def write_ml_metadata(run_dir: Path, info: MaintenanceMlRunInfo) -> None:
     (run_dir / "metadata.json").write_text(
         json.dumps(info.model_dump(), indent=2, ensure_ascii=False),
         encoding="utf-8",
