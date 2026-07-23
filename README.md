@@ -40,6 +40,10 @@ L'interface écoute sur `http://127.0.0.1:5173` et proxyfie `/api` vers FastAPI.
 - Consulter l'historique des artefacts dans `backend/artifacts/ingestions/incidents/`.
 - Stocker les Gold Datasets dans `backend/artifacts/gold-datasets/`.
 
+## Supports de cours
+
+Les fiches de cours sont rangées dans [`docs/README.md`](docs/README.md).
+
 ## Commandes utiles
 
 ```powershell

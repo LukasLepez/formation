@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, Chip, IconButton, Tooltip, Typography } from '@mui/material'
-import RefreshIcon from '@mui/icons-material/Refresh'
+import { Box, Chip, Typography } from '@mui/material'
 import { NavLink, Outlet } from 'react-router-dom'
 import { api } from '../lib/api'
 
@@ -19,6 +18,7 @@ export function AppShell() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshHealth()
   }, [])
 
@@ -38,6 +38,12 @@ export function AppShell() {
           <NavLink to="/maintenance-ml" className={({ isActive }) => `navLink ${isActive ? 'navLinkActive' : ''}`}>
             <span>Maintenance ML</span>
           </NavLink>
+          <NavLink to="/vision-data" className={({ isActive }) => `navLink ${isActive ? 'navLinkActive' : ''}`}>
+            <span>Données images</span>
+          </NavLink>
+          <NavLink to="/vision-model" className={({ isActive }) => `navLink ${isActive ? 'navLinkActive' : ''}`}>
+            <span>Auto-encodeur</span>
+          </NavLink>
         </Box>
         <Box className="navStatus">
           <Chip
@@ -45,11 +51,6 @@ export function AppShell() {
             color={health === 'ok' ? 'success' : 'error'}
             size="small"
           />
-          <Tooltip title="Rafraîchir">
-            <IconButton onClick={() => void refreshHealth()} size="small">
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
         </Box>
       </Box>
       <Outlet />

@@ -1,6 +1,6 @@
 """Constructeur du Gold Dataset pour le projet de formation InduSense 4.0.
 
-L'implémentation suit ``docs/gold_dataset.md`` comme contrat :
+L'implémentation suit ``docs/05_gold_dataset.md`` comme contrat :
 une ligne représente une machine pendant une heure, toutes les variables
 glissantes sont calculées par machine, et toute statistique apprise depuis les
 données est ajustée uniquement sur le split chronologique d'entraînement.

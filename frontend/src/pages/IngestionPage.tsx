@@ -24,7 +24,6 @@ import {
   Typography,
 } from '@mui/material'
 import type { SelectChangeEvent } from '@mui/material'
-import AutoGraphIcon from '@mui/icons-material/AutoGraph'
 import DatasetIcon from '@mui/icons-material/Dataset'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import RefreshIcon from '@mui/icons-material/Refresh'
@@ -32,7 +31,7 @@ import TerminalIcon from '@mui/icons-material/Terminal'
 import { api, apiText, messageFrom } from '../lib/api'
 import { formatBytes } from '../lib/format'
 import { statusLabel, statusValueColor } from '../lib/status'
-import type { GoldCsvInfo, GraphRunInfo, GraphSourceLayer, LayerName, RunInfo, TablePreview } from '../types'
+import type { GoldCsvInfo, LayerName, RunInfo, TablePreview } from '../types'
 import { DataPreview } from '../components/DataPreview'
 import { LogPanel } from '../components/LogPanel'
 import { MetricCard } from '../components/MetricCard'
@@ -45,18 +44,14 @@ const TABLE_PAGE_SIZE = 500
 export function IngestionPage() {
   const [activeTab, setActiveTab] = useState(0)
   const [runs, setRuns] = useState<RunInfo[]>([])
-  const [graphRuns, setGraphRuns] = useState<GraphRunInfo[]>([])
   const [datasets, setDatasets] = useState<Record<string, string[]>>({})
   const [goldCsvs, setGoldCsvs] = useState<GoldCsvInfo[]>([])
   const [selectedRunId, setSelectedRunId] = useState('')
-  const [selectedGraphRunId, setSelectedGraphRunId] = useState('')
   const [selectedGoldCsv, setSelectedGoldCsv] = useState('')
   const [logs, setLogs] = useState('')
-  const [graphLogs, setGraphLogs] = useState('')
   const [layer, setLayer] = useState<LayerName>('all')
   const [persistDb, setPersistDb] = useState(true)
   const [autoDocker, setAutoDocker] = useState(true)
-  const [graphLayer, setGraphLayer] = useState<GraphSourceLayer>('silver')
   const [dataLayer, setDataLayer] = useState('gold')
   const [dataTable, setDataTable] = useState('gold_dataset')
   const [preview, setPreview] = useState<TablePreview | null>(null)
@@ -64,25 +59,26 @@ export function IngestionPage() {
   const [previewLoadingMore, setPreviewLoadingMore] = useState(false)
   const [goldLoadingMore, setGoldLoadingMore] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [launchingRun, setLaunchingRun] = useState(false)
   const [error, setError] = useState('')
 
   const latestRun = runs[0]
+  const selectedRun = runs.find((run) => run.run_id === selectedRunId)
+  const pipelineRunIsActive = selectedRun?.status === 'queued' || selectedRun?.status === 'running'
+  const pipelineButtonLoading = launchingRun || pipelineRunIsActive
 
   async function refresh() {
     setError('')
     try {
-      const [runData, graphData, datasetData, csvData] = await Promise.all([
+      const [runData, datasetData, csvData] = await Promise.all([
         api<RunInfo[]>('/runs'),
-        api<GraphRunInfo[]>('/graph-runs'),
         api<Record<string, string[]>>('/datasets'),
         api<GoldCsvInfo[]>('/gold-csvs'),
       ])
       setRuns(runData)
-      setGraphRuns(graphData)
       setDatasets(datasetData)
       setGoldCsvs(csvData)
       if (!selectedRunId && runData[0]) setSelectedRunId(runData[0].run_id)
-      if (!selectedGraphRunId && graphData[0]) setSelectedGraphRunId(graphData[0].run_id)
       if (!selectedGoldCsv && csvData[0]) setSelectedGoldCsv(csvData[0].run_name)
     } catch (refreshError) {
       setError(messageFrom(refreshError))
@@ -91,6 +87,7 @@ export function IngestionPage() {
 
   async function launchRun() {
     setBusy(true)
+    setLaunchingRun(true)
     setError('')
     try {
       const run = await api<RunInfo>('/runs', {
@@ -104,24 +101,7 @@ export function IngestionPage() {
       setError(messageFrom(runError))
     } finally {
       setBusy(false)
-    }
-  }
-
-  async function launchGraphRun() {
-    setBusy(true)
-    setError('')
-    try {
-      const run = await api<GraphRunInfo>('/graph-runs', {
-        method: 'POST',
-        body: JSON.stringify({ source_layer: graphLayer, log_level: 'INFO' }),
-      })
-      setSelectedGraphRunId(run.run_id)
-      setActiveTab(3)
-      await refresh()
-    } catch (graphError) {
-      setError(messageFrom(graphError))
-    } finally {
-      setBusy(false)
+      setLaunchingRun(false)
     }
   }
 
@@ -204,25 +184,6 @@ export function IngestionPage() {
     }
   }, [selectedRunId])
 
-  useEffect(() => {
-    if (!selectedGraphRunId) return
-    let active = true
-    async function poll() {
-      try {
-        const text = await apiText(`/graph-runs/${selectedGraphRunId}/logs/raw`)
-        if (active) setGraphLogs(text)
-      } catch {
-        if (active) setGraphLogs('')
-      }
-    }
-    void poll()
-    const interval = window.setInterval(() => void poll(), 2500)
-    return () => {
-      active = false
-      window.clearInterval(interval)
-    }
-  }, [selectedGraphRunId])
-
   return (
     <Container maxWidth={false} className="pageShell" id="ingestion">
       <Stack spacing={2}>
@@ -234,7 +195,7 @@ export function IngestionPage() {
           </Box>
         </Box>
 
-        {busy && <LinearProgress />}
+        {(busy || pipelineRunIsActive) && <LinearProgress />}
         {error && <Alert severity="error">{error}</Alert>}
 
         <Box className="summaryGrid">
@@ -246,7 +207,6 @@ export function IngestionPage() {
           />
           <MetricCard label="Lignes Gold" value={latestRun?.rows?.toLocaleString('fr-FR') ?? '-'} helper={`${latestRun?.columns ?? '-'} colonnes`} />
           <MetricCard label="CSV Gold" value={goldCsvs.length.toLocaleString('fr-FR')} helper="versions générées" />
-          <MetricCard label="Graphes" value={graphRuns[0]?.graph_count?.toLocaleString('fr-FR') ?? '-'} helper={graphRuns[0]?.source_layer ?? 'Aucun rapport'} />
         </Box>
 
         <Paper className="tabsPanel">
@@ -254,7 +214,6 @@ export function IngestionPage() {
             <Tab label="Pipeline" />
             <Tab label="Base de données" />
             <Tab label="CSV Gold" />
-            <Tab label="Graphes" />
           </Tabs>
         </Paper>
 
@@ -273,18 +232,8 @@ export function IngestionPage() {
               </FormControl>
               <FormControlLabel control={<Switch checked={persistDb} onChange={(_, checked) => setPersistDb(checked)} />} label="PostgreSQL" />
               <FormControlLabel control={<Switch checked={autoDocker} onChange={(_, checked) => setAutoDocker(checked)} />} label="Docker" />
-              <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={() => void launchRun()} disabled={busy}>
+              <Button variant="contained" startIcon={<PlayArrowIcon />} onClick={() => void launchRun()} loading={pipelineButtonLoading}>
                 Lancer
-              </Button>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Graphes</InputLabel>
-                <Select value={graphLayer} label="Graphes" onChange={(event: SelectChangeEvent) => setGraphLayer(event.target.value as GraphSourceLayer)}>
-                  <MenuItem value="bronze">Bronze</MenuItem>
-                  <MenuItem value="silver">Silver</MenuItem>
-                </Select>
-              </FormControl>
-              <Button variant="outlined" startIcon={<AutoGraphIcon />} onClick={() => void launchGraphRun()} disabled={busy}>
-                Générer les graphes
               </Button>
             </Stack>
           </Paper>
@@ -367,15 +316,6 @@ export function IngestionPage() {
           </Paper>
         )}
 
-        {activeTab === 3 && (
-          <Box className="workGrid">
-            <Paper className="panel">
-              <SectionHeader title="Graphes" icon={<AutoGraphIcon fontSize="small" />} action={<GraphRunPicker runs={graphRuns} value={selectedGraphRunId} onChange={setSelectedGraphRunId} />} />
-              <GraphRunTable runs={graphRuns} selected={selectedGraphRunId} onSelect={setSelectedGraphRunId} />
-            </Paper>
-            <LogPanel title="Logs graphes" text={graphLogs} />
-          </Box>
-        )}
       </Stack>
     </Container>
   )
@@ -386,17 +326,6 @@ function RunPicker({ runs, value, onChange }: { runs: RunInfo[]; value: string; 
     <FormControl size="small" sx={{ minWidth: 260 }}>
       <InputLabel>Run</InputLabel>
       <Select value={value} label="Run" onChange={(event: SelectChangeEvent) => onChange(event.target.value)}>
-        {runs.map((run) => <MenuItem key={run.run_id} value={run.run_id}>{run.run_id}</MenuItem>)}
-      </Select>
-    </FormControl>
-  )
-}
-
-function GraphRunPicker({ runs, value, onChange }: { runs: GraphRunInfo[]; value: string; onChange: (value: string) => void }) {
-  return (
-    <FormControl size="small" sx={{ minWidth: 260 }}>
-      <InputLabel>Run graphes</InputLabel>
-      <Select value={value} label="Run graphes" onChange={(event: SelectChangeEvent) => onChange(event.target.value)}>
         {runs.map((run) => <MenuItem key={run.run_id} value={run.run_id}>{run.run_id}</MenuItem>)}
       </Select>
     </FormControl>
@@ -424,35 +353,6 @@ function RunTable({ runs, selectedRunId, onSelect }: { runs: RunInfo[]; selected
               <TableCell>{run.layer}</TableCell>
               <TableCell>{run.rows?.toLocaleString('fr-FR') ?? '-'}</TableCell>
               <TableCell>{run.columns?.toLocaleString('fr-FR') ?? '-'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function GraphRunTable({ runs, selected, onSelect }: { runs: GraphRunInfo[]; selected: string; onSelect: (id: string) => void }) {
-  return (
-    <TableContainer sx={{ maxHeight: 430 }}>
-      <Table size="small" stickyHeader>
-        <TableHead>
-          <TableRow>
-            <TableCell>Run</TableCell>
-            <TableCell>Statut</TableCell>
-            <TableCell>Source</TableCell>
-            <TableCell>Graphes</TableCell>
-            <TableCell>Télémétrie</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {runs.map((run) => (
-            <TableRow key={run.run_id} hover selected={run.run_id === selected} onClick={() => onSelect(run.run_id)} sx={{ cursor: 'pointer' }}>
-              <TableCell>{run.run_id}</TableCell>
-              <TableCell><StatusChip status={run.status} /></TableCell>
-              <TableCell>{run.source_layer}</TableCell>
-              <TableCell>{run.graph_count?.toLocaleString('fr-FR') ?? '-'}</TableCell>
-              <TableCell>{run.telemetry_rows?.toLocaleString('fr-FR') ?? '-'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

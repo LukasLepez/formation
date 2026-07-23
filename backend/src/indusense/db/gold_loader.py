@@ -10,7 +10,7 @@ from indusense.processing.ingestion import load_gold_from_db as _load_gold_from_
 def load_gold_from_db(table_name: str = "gold_dataset", database_url: str | None = None) -> pd.DataFrame:
     """Charge le Gold Dataset persisté dans PostgreSQL.
 
-    C'est le nom de fonction public utilisé dans ``docs/gold_dataset.md``.
+    C'est le nom de fonction public utilisé dans ``docs/05_gold_dataset.md``.
     """
 
     return _load_gold_from_db(database_url=database_url, table_name=table_name)

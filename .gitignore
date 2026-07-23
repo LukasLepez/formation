@@ -12,7 +12,13 @@ backend/.venv
 frontend/node_modules/
 
 # Generated ingestion artifacts
+backend/artifacts/
 backend/artifacts/ingestions/incidents/
 backend/artifacts/pipeline-runs/
 backend/artifacts/gold-datasets/
 backend/artifacts/maintenance-ml-runs/
+backend/artifacts/vision-datasets/
+
+# Local ML experiment outputs and datasets
+**/mlruns/
+backend/data/mvtec/

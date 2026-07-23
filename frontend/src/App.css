@@ -67,9 +67,9 @@ body {
 .navStatus {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   margin-top: auto;
-  align-self: flex-start;
+  align-self: stretch;
 }
 
 .pageShell {
@@ -106,6 +106,10 @@ body {
 .tabsPanel {
   overflow: hidden;
   background: #141821;
+}
+
+.reportTabsPanel {
+  padding: 0;
 }
 
 .workGrid {
@@ -152,10 +156,551 @@ body {
   gap: 12px;
 }
 
+.settingsSection {
+  display: grid;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.settingsSection + .settingsSection {
+  padding-top: 18px;
+  border-top: 1px solid #252b36;
+}
+
+.settingsSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settingsGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.twoColumns {
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+}
+
+.modelChoiceGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.modelChoiceItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 6px 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.modelChoiceItem span {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.modelChoiceItem .MuiSwitch-root {
+  flex: 0 0 auto;
+  margin-left: -8px;
+}
+
+.modelChoiceItem .MuiIconButton-root {
+  flex: 0 0 auto;
+}
+
+.advancedToggle {
+  justify-self: start;
+  padding-inline: 0;
+  text-transform: none;
+  font-weight: 750;
+}
+
+.advancedToggleIcon,
+.advancedToggleIconOpen {
+  transition: transform 160ms ease;
+}
+
+.advancedToggleIconOpen {
+  transform: rotate(180deg);
+}
+
+.thresholdGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.thresholdGrid,
+.advancedSettingsGroup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.thresholdHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.thresholdHeader .MuiIconButton-root {
+  flex: 0 0 auto;
+  margin-top: -6px;
+}
+
+.thresholdExplanation {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  max-width: none;
+  padding: 10px 12px;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.thresholdMethodText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.costSettingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.trainingAdvancedGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.65fr) minmax(640px, 1.35fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.advancedSettingsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.advancedSettingsGroup {
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  align-content: start;
+}
+
+.advancedSettingsGroup:first-child {
+  width: auto;
+}
+
+.advancedSettingsGroup:nth-child(2),
+.advancedSettingsGroup:nth-child(3) {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.advancedSettingsGroup > p:first-child,
+.advancedSettingsGroup > label {
+  grid-column: 1 / -1;
+}
+
+.switchField {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 78px;
+  align-content: start;
+  padding-top: 2px;
+}
+
+.switchFieldLabel {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.switchField .MuiFormControlLabel-root {
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
+}
+
+.switchField .MuiSwitch-root {
+  margin-left: -8px;
+}
+
 .confusionGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+}
+
+.runCompareSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.runCompareGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.runCompareHelp {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.runCompareHelpGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.reportPickerGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.reportPickerActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.reportPickerMeta,
+.reportDecisionGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.effectivenessHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.28fr);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-left: 4px solid #22c55e;
+  border-radius: 6px;
+}
+
+.effectivenessModel {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.reportKpiGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.reportDecisionGrid {
+  padding: 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.reportDetailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.panelLite {
+  min-width: 0;
+  padding: 14px;
+  background: #141821;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.trainingTimeline {
+  display: grid;
+  gap: 0;
+  margin-bottom: 14px;
+}
+
+.timelineItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  min-width: 0;
+  padding-bottom: 12px;
+}
+
+.timelineItem::before {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 0;
+  left: 6px;
+  width: 1px;
+  background: #252b36;
+}
+
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+
+.timelineItem:last-child::before {
+  display: none;
+}
+
+.timelineDot {
+  z-index: 1;
+  width: 13px;
+  height: 13px;
+  margin-top: 4px;
+  border: 2px solid #7dd3fc;
+  border-radius: 999px;
+  background: #10141c;
+}
+
+.timelineItem-success .timelineDot {
+  border-color: #22c55e;
+}
+
+.timelineItem-failed .timelineDot {
+  border-color: #fb7185;
+}
+
+.timelineBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.eventDetails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  min-width: 0;
+}
+
+.artifactPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.artifactImageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.artifactImageItem {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.artifactImageItem img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  background: #f8fafc;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.artifactLink {
+  color: #dbeafe;
+  text-decoration: none;
+}
+
+.trackingChecklist {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.trackingChecklistItem {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #090b10;
+  border: 1px solid #334155;
+  border-left: 3px solid #64748b;
+  border-radius: 6px;
+}
+
+.trackingChecklistItem-ok {
+  border-left-color: #22c55e;
+}
+
+.mlflowActionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.candidateTests {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.candidateTestItem {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 11px;
+  background: #090b10;
+  border: 1px solid #334155;
+  border-left: 3px solid #64748b;
+  border-radius: 6px;
+}
+
+.candidateTestItem-ok {
+  border-left-color: #22c55e;
+}
+
+.candidateTestItem-failed {
+  border-left-color: #fb7185;
+}
+
+.definitionItem {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.shapNarrative {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.runConfigSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.runConfigItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 7px;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.runConfigItem span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runConfigItem .MuiIconButton-root {
+  flex: 0 0 auto;
+  padding: 0;
+}
+
+.runCompareCard {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 14px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.metricBars,
+.errorBars {
+  display: grid;
+  gap: 8px;
+}
+
+.compareBarRow {
+  display: grid;
+  grid-template-columns: 68px minmax(120px, 1fr) 58px;
+  gap: 8px;
+  align-items: center;
+}
+
+.compareBarTrack {
+  height: 10px;
+  overflow: hidden;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 999px;
+}
+
+.compareBarFill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.compareBarFill-good {
+  background: #22c55e;
+}
+
+.compareBarFill-neutral {
+  background: #7dd3fc;
+}
+
+.compareBarFill-danger {
+  background: #fb7185;
+}
+
+.compareBarFill-warning {
+  background: #facc15;
+}
+
+.compareBarValue {
+  text-align: right;
 }
 
 .tableBlock {
@@ -198,6 +743,13 @@ body {
   white-space: nowrap;
 }
 
+.runSettingText {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .logBox {
   margin-top: 12px;
   padding: 14px;
@@ -211,6 +763,192 @@ body {
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
   line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.visionDatasetGrid,
+.augmentationGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.visionWorkGrid {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(460px, 1.1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.visionSplitRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionSplitRow > div:first-child {
+  min-width: 0;
+}
+
+.visionSplitRow p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visionChecklist {
+  display: grid;
+  gap: 10px;
+}
+
+.visionChecklistItem,
+.augmentationItem {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-left: 3px solid #7dd3fc;
+  border-radius: 6px;
+}
+
+.augmentationItem {
+  border-left-color: #22c55e;
+}
+
+.visionImageSections {
+  display: grid;
+  gap: 14px;
+}
+
+.visionImageStrip {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.visionStripHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.visionSampleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 150px));
+  gap: 10px;
+  align-items: start;
+}
+
+.visionSampleItem {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  max-width: 150px;
+  padding: 7px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionSampleItem img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #f8fafc;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionModelSettings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.visionPatchcoreHelp {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-left: 3px solid #a78bfa;
+  border-radius: 6px;
+}
+
+.visionPatchcoreDefinitions {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.visionPatchcoreDefinition {
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  background: #141821;
+  border: 1px solid #252b36;
+  border-radius: 5px;
+}
+
+.visionResultLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionArtifactGrid,
+.visionHeatmapGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.visionArtifactGrid img,
+.visionHeatmapCard img {
+  display: block;
+  width: 100%;
+  background: #fff;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionHeatmapCard {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  background: #10141c;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+}
+
+.visionLogBox {
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px;
+  color: #dbeafe;
+  background: #090b10;
+  border: 1px solid #252b36;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 
@@ -258,13 +996,47 @@ body {
   .summaryGrid,
   .workGrid,
   .modelMetaGrid,
-  .confusionGrid {
+  .confusionGrid,
+  .runCompareSummary,
+  .runCompareHelpGrid,
+  .reportPickerGrid,
+  .reportPickerMeta,
+  .reportDecisionGrid,
+  .effectivenessHero,
+  .reportKpiGrid,
+  .reportDetailGrid,
+  .artifactImageGrid,
+  .trackingChecklist,
+  .twoColumns,
+  .modelChoiceGrid,
+  .thresholdGrid,
+  .costSettingsGrid,
+  .trainingAdvancedGrid,
+  .advancedSettingsGrid,
+  .visionDatasetGrid,
+  .visionWorkGrid,
+  .augmentationGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .visionModelSettings,
+  .visionArtifactGrid,
+  .visionHeatmapGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .settingsSectionHeader {
+    flex-direction: column;
+  }
+
+  .advancedSettingsGroup {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .summaryGrid {
+  .summaryGrid,
+  .visionSampleGrid {
     grid-template-columns: 1fr;
   }
 }
