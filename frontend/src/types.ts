@@ -159,6 +159,7 @@ export type VisionModelReport = {
   critical_analysis: string
   carbon?: { available?: boolean; duration_seconds?: number; energy_kwh?: number | null; emissions_gco2eq?: number | null; reason?: string }
   b7_artifacts?: Record<string, string>
+  model_card_path?: string | null
   mlflow_tracking_uri: string
   mlflow_run_id?: string | null
 }
@@ -248,6 +249,7 @@ export type MaintenanceMlReport = {
   b7_artifacts?: Record<string, string>
   reproducibility?: Record<string, string>
   event_log_path?: string | null
+  model_card_path?: string | null
   results: MaintenanceMlResult[]
   best_model: string
   conclusion: string

@@ -36,6 +36,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from indusense.maintenance.carbon import MaintenanceEmissionsTracker
+from indusense.maintenance.model_card import generate_maintenance_model_card
 from indusense.maintenance.tune import run_xgboost_study
 
 LOGGER = logging.getLogger(__name__)
@@ -363,6 +364,7 @@ def train_maintenance_models(config: MaintenanceMlConfig) -> dict[str, Any]:
         "b7_artifacts": b7_artifacts,
         "reproducibility": reproducibility,
         "event_log_path": str((config.run_dir / "training_events.jsonl").relative_to(config.run_dir.parent.parent)),
+        "model_card_path": "README.md",
         "results": results,
         "best_model": best_model,
         "conclusion": (
@@ -378,8 +380,15 @@ def train_maintenance_models(config: MaintenanceMlConfig) -> dict[str, Any]:
         threshold=best_result["threshold"],
         validation_pr_auc=best_result["pr_auc_validation"],
     )
+    generate_maintenance_model_card(report, config.run_dir)
     (config.run_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-    event_log.write("finish", "success", "Rapport ML généré.", report_path="report.json")
+    event_log.write(
+        "finish",
+        "success",
+        "Rapport ML et model card générés.",
+        report_path="report.json",
+        model_card_path="README.md",
+    )
     return report
 
 

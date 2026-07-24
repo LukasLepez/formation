@@ -28,9 +28,9 @@ class VisionEmissionsTracker(AbstractContextManager["VisionEmissionsTracker"]):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._started_at = time.perf_counter()
         try:
-            from codecarbon import EmissionsTracker
+            from codecarbon import OfflineEmissionsTracker
 
-            self._tracker = EmissionsTracker(
+            self._tracker = OfflineEmissionsTracker(
                 output_dir=str(self.output_dir),
                 output_file="emissions.csv",
                 country_iso_code=self.country_iso_code,
@@ -39,18 +39,24 @@ class VisionEmissionsTracker(AbstractContextManager["VisionEmissionsTracker"]):
             )
             self._tracker.start()
             self.result["available"] = True
-        except ImportError:
-            self.result["reason"] = "codecarbon non installé"
+            self.result["country_iso_code"] = self.country_iso_code
+        except Exception as error:  # CodeCarbon ne doit jamais bloquer l'entraînement.
+            self._tracker = None
+            self.result["reason"] = f"CodeCarbon indisponible : {error}"
         return self
 
     def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self.result["duration_seconds"] = round(time.perf_counter() - self._started_at, 3)
         if self._tracker is None:
             return None
-        emissions_kg = self._tracker.stop()
-        self.result["emissions_gco2eq"] = None if emissions_kg is None else float(emissions_kg) * 1000
-        # CodeCarbon expose l'énergie cumulée sur le tracker selon sa version.
-        energy = getattr(getattr(self._tracker, "_total_energy", None), "kWh", None)
-        self.result["energy_kwh"] = None if energy is None else float(energy)
-        self.result["emissions_csv"] = "emissions.csv"
+        try:
+            emissions_kg = self._tracker.stop()
+            self.result["emissions_gco2eq"] = None if emissions_kg is None else float(emissions_kg) * 1000
+            # CodeCarbon expose l'énergie cumulée sur le tracker selon sa version.
+            energy = getattr(getattr(self._tracker, "_total_energy", None), "kWh", None)
+            self.result["energy_kwh"] = None if energy is None else float(energy)
+            self.result["emissions_csv"] = "emissions.csv"
+        except Exception as error:
+            self.result["available"] = False
+            self.result["reason"] = f"Arrêt CodeCarbon impossible : {error}"
         return None

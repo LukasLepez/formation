@@ -29,6 +29,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 
 from indusense.artifacts import RUN_INDEX_JSON
+from indusense.maintenance.model_card import generate_maintenance_model_card
 from indusense.maintenance_ml import DEFAULT_LABEL, MaintenanceMlConfig, hash_dataframe, train_maintenance_models
 from indusense.processing.ingestion import (
     DEFAULT_DATABASE_URL,
@@ -38,6 +39,7 @@ from indusense.processing.ingestion import (
 )
 from indusense.reporting.graphs import generate_graph_report
 from indusense.vision.train import VisionTrainingConfig, train_vision_autoencoder
+from indusense.vision.model_card import generate_vision_model_card
 from indusense.vision.patchcore import PatchCoreConfig, train_patchcore
 from indusense.vision_dataset import (
     VisionPreparationConfig,
@@ -397,6 +399,7 @@ class MaintenanceMlReport(BaseModel):
     b7_artifacts: dict[str, str] = Field(default_factory=dict)
     reproducibility: dict[str, Any] = Field(default_factory=dict)
     event_log_path: str | None = None
+    model_card_path: str | None = None
     results: list[dict[str, Any]]
     best_model: str
     conclusion: str
@@ -727,6 +730,20 @@ def get_vision_model_logs(run_id: str) -> str:
     return log_path.read_text(encoding="utf-8", errors="replace") if log_path.exists() else ""
 
 
+@app.get("/vision-model-runs/{run_id}/model-card", response_class=PlainTextResponse)
+def get_vision_model_card(run_id: str) -> str:
+    """Retourne la model card, y compris pour un ancien run."""
+
+    run_dir = resolve_vision_model_run_dir(run_id)
+    report_path = run_dir / "report.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Rapport de vision introuvable.")
+    card_path = run_dir / "README.md"
+    if not card_path.exists():
+        generate_vision_model_card(json.loads(report_path.read_text(encoding="utf-8")), run_dir)
+    return card_path.read_text(encoding="utf-8")
+
+
 @app.get("/vision-model-runs/{run_id}/artifacts/{artifact_path:path}")
 def get_vision_model_artifact(run_id: str, artifact_path: str) -> FileResponse:
     run_dir = resolve_vision_model_run_dir(run_id)
@@ -821,6 +838,22 @@ def get_maintenance_ml_report(run_id: str) -> MaintenanceMlReport:
     if not report_path.exists():
         raise HTTPException(status_code=404, detail="Rapport ML introuvable pour ce run.")
     return MaintenanceMlReport(**json.loads(report_path.read_text(encoding="utf-8")))
+
+
+@app.get("/maintenance-ml-runs/{run_id}/model-card", response_class=PlainTextResponse)
+def get_maintenance_model_card(run_id: str) -> str:
+    """Retourne la model card et la génère à la volée pour les anciens runs."""
+
+    info = read_existing_ml_metadata(run_id)
+    run_dir = PROJECT_DIR / info.run_dir
+    report_path = run_dir / "report.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Rapport ML introuvable pour ce run.")
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    model_card_path = run_dir / "README.md"
+    if not model_card_path.exists():
+        generate_maintenance_model_card(report, run_dir)
+    return model_card_path.read_text(encoding="utf-8")
 
 
 @app.get("/maintenance-ml-runs/{run_id}/logs/raw", response_class=PlainTextResponse)
@@ -1040,9 +1073,14 @@ def test_staging_model_candidate() -> ModelCandidateTestReport:
 @app.get("/maintenance-ml-runs/{run_id}/candidate-readme", response_class=PlainTextResponse)
 def get_candidate_readme(run_id: str) -> str:
     info = read_existing_ml_metadata(run_id)
-    readme_path = PROJECT_DIR / info.run_dir / "model_candidate_README.md"
+    run_dir = PROJECT_DIR / info.run_dir
+    readme_path = run_dir / "README.md"
     if not readme_path.exists():
-        raise HTTPException(status_code=404, detail="Fiche modèle candidate introuvable.")
+        report_path = run_dir / "report.json"
+        if not report_path.exists():
+            raise HTTPException(status_code=404, detail="Fiche modèle candidate introuvable.")
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        generate_maintenance_model_card(report, run_dir)
     return readme_path.read_text(encoding="utf-8")
 
 
@@ -1677,58 +1715,13 @@ def tail_text(path: Path, max_chars: int = 1200) -> str:
 
 def write_candidate_readme(run_id: str, report: dict[str, Any], best: dict[str, Any], version: str, stage: str) -> Path:
     run_dir = ML_RUNS_DIR / run_id
-    reproducibility = report.get("reproducibility") or {}
-    readme = f"""# Modèle candidat maintenance prédictive
-
-## Identité
-
-- Run applicatif : `{run_id}`
-- Modèle : `{best.get("model", report.get("best_model"))}`
-- Registry : `{MLFLOW_REGISTERED_MODEL_NAME}`
-- Version : `{version}`
-- Stage : `{stage}`
-- MLflow run : `{best.get("mlflow_run_id", "-")}`
-
-## Données
-
-- Gold dataset : `{report.get("gold_run_name", "-")}`
-- CSV : `{report.get("gold_csv_path", "-")}`
-- Hash dataset : `{reproducibility.get("dataset_hash", "-")}`
-- Cible : `{report.get("label_column", "-")}`
-- Lignes : `{report.get("rows", "-")}`
-- Features : `{report.get("features", "-")}`
-
-## Décision opérationnelle
-
-- Stratégie de seuil : `{report.get("threshold_strategy", "-")}`
-- Seuil retenu : `{best.get("threshold", "-")}`
-- Coût métier : `FN x{report.get("false_negative_cost", 20)} / FP x{report.get("false_positive_cost", 1)}`
-
-## Métriques test
-
-- PR-AUC : `{best.get("pr_auc_test", "-")}`
-- ROC-AUC : `{best.get("roc_auc_test", "-")}`
-- Précision : `{best.get("precision_test", "-")}`
-- Recall : `{best.get("recall_test", "-")}`
-- F1 : `{best.get("f1_test", "-")}`
-- Coût métier : `{best.get("business_cost_test", "-")}`
-
-## Reproductibilité
-
-- Seed : `{report.get("random_state", 42)}`
-- Python : `{reproducibility.get("python_version", "-")}`
-- scikit-learn : `{reproducibility.get("sklearn_version", "-")}`
-- Tracking URI : `{report.get("mlflow_tracking_uri", "-")}`
-
-## Limites
-
-- Le seuil est choisi sur validation et doit être surveillé en production.
-- SHAP global et local est disponible dans les artefacts quand la librairie SHAP est installée.
-- Le coût métier dépend des pondérations FN/FP configurées au run.
-"""
-    readme_path = run_dir / "model_candidate_README.md"
-    readme_path.write_text(readme, encoding="utf-8")
-    return readme_path
+    return generate_maintenance_model_card(
+        report,
+        run_dir,
+        model_version=version,
+        registry_name=MLFLOW_REGISTERED_MODEL_NAME,
+        registry_stage=stage,
+    )
 
 
 def load_latest_success_report_for_registered_model() -> dict[str, Any] | None:

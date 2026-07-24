@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Alert, Box, Button, Chip, Container, FormControl, InputLabel, LinearProgress,
-  MenuItem, Paper, Select, Stack, TextField, Typography,
+  MenuItem, Paper, Select, Stack, Tab, Tabs, TextField, Typography,
 } from '@mui/material'
 import AutoGraphIcon from '@mui/icons-material/AutoGraph'
 import MemoryIcon from '@mui/icons-material/Memory'
@@ -44,6 +44,8 @@ export function VisionModelPage() {
   const [runs, setRuns] = useState<VisionModelRunInfo[]>([])
   const [selectedRunId, setSelectedRunId] = useState('')
   const [report, setReport] = useState<VisionModelReport | null>(null)
+  const [modelCard, setModelCard] = useState('')
+  const [reportTab, setReportTab] = useState(0)
   const [logs, setLogs] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -58,9 +60,19 @@ export function VisionModelPage() {
   }, [])
 
   const loadRunDetails = useCallback(async (run: VisionModelRunInfo | null) => {
-    if (!run) { setReport(null); setLogs(''); return }
+    if (!run) { setReport(null); setModelCard(''); setLogs(''); return }
     setLogs(await apiText(`/vision-model-runs/${run.run_id}/logs`))
-    setReport(run.status === 'success' ? await api<VisionModelReport>(`/vision-model-runs/${run.run_id}/report`) : null)
+    if (run.status === 'success') {
+      const [nextReport, nextModelCard] = await Promise.all([
+        api<VisionModelReport>(`/vision-model-runs/${run.run_id}/report`),
+        apiText(`/vision-model-runs/${run.run_id}/model-card`),
+      ])
+      setReport(nextReport)
+      setModelCard(nextModelCard)
+    } else {
+      setReport(null)
+      setModelCard('')
+    }
   }, [])
 
   useEffect(() => {
@@ -83,6 +95,7 @@ export function VisionModelPage() {
       const created = await api<VisionModelRunInfo>('/vision-model-runs', {
         method: 'POST', body: JSON.stringify({ ...form, random_seed: 42 }),
       })
+      setReportTab(0)
       await loadRuns(created.run_id)
     } catch (runError) { setError(messageFrom(runError)) } finally { setLoading(false) }
   }
@@ -128,11 +141,52 @@ export function VisionModelPage() {
         </Paper>
 
         <Paper className="panel">
-          <SectionHeader title="Exécutions vision" icon={<MemoryIcon fontSize="small" />} action={runs.length ? <FormControl size="small" sx={{ minWidth: 310 }}><InputLabel>Exécution affichée</InputLabel><Select label="Exécution affichée" value={selectedRunId} onChange={(event) => setSelectedRunId(event.target.value)}>{runs.map((run) => <MenuItem key={run.run_id} value={run.run_id} >{run.run_id} · {statusLabel(run.status)}</MenuItem>)}</Select></FormControl> : undefined} />
+          <SectionHeader title="Exécutions vision" icon={<MemoryIcon fontSize="small" />} action={runs.length ? <FormControl size="small" sx={{ minWidth: 310 }}><InputLabel>Exécution affichée</InputLabel><Select label="Exécution affichée" value={selectedRunId} onChange={(event) => { setSelectedRunId(event.target.value); setReportTab(0) }}>{runs.map((run) => <MenuItem key={run.run_id} value={run.run_id} >{run.run_id} · {statusLabel(run.status)}</MenuItem>)}</Select></FormControl> : undefined} />
           {selectedRun ? <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}><Chip label={statusLabel(selectedRun.status)} color={statusColor(selectedRun.status)} size="small" /><Chip label={selectedRun.model_type === 'patchcore' ? 'PatchCore' : 'Auto-encodeur'} variant="outlined" size="small" /><Chip label={selectedRun.dataset_version} variant="outlined" size="small" /><Chip label={`${selectedRun.epochs} époques · lot de ${selectedRun.batch_size}`} variant="outlined" size="small" /><Chip label={`perte ${selectedRun.loss_name.toUpperCase()}`} variant="outlined" size="small" /></Stack> : <Alert severity="info">Aucune exécution. Préparez d’abord le jeu de données, puis lancez l’entraînement.</Alert>}
         </Paper>
 
-        {report && <VisionReport report={report} />}
+        {report && (
+          <>
+            <Paper className="tabsPanel">
+              <Tabs value={reportTab} onChange={(_, value) => setReportTab(value)} variant="scrollable" scrollButtons="auto">
+                <Tab label="Résultats du modèle" />
+                <Tab label="B8 · Model card" />
+              </Tabs>
+            </Paper>
+            {reportTab === 0 && <VisionReport report={report} />}
+            {reportTab === 1 && (
+              <Paper className="panel">
+                <SectionHeader
+                  title="Model card Hugging Face — modèle vision"
+                  action={
+                    <Button
+                      variant="outlined"
+                      href={`/api/vision-model-runs/${report.run_id}/model-card`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Ouvrir le Markdown
+                    </Button>
+                  }
+                />
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Fiche B8 générée depuis ce run : usages, hors-périmètre, limites, seuil,
+                  métriques image/pixel, CodeCarbon, version, auteurs et contact.
+                </Alert>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0, p: 2, maxHeight: 720, overflow: 'auto', whiteSpace: 'pre-wrap',
+                    overflowWrap: 'anywhere', borderRadius: 2, bgcolor: 'action.hover',
+                    fontFamily: 'monospace', fontSize: '0.78rem', lineHeight: 1.55,
+                  }}
+                >
+                  {modelCard || 'Model card indisponible.'}
+                </Box>
+              </Paper>
+            )}
+          </>
+        )}
         {selectedRun && <Paper className="panel"><SectionHeader title="Journal d’exécution" /><Box className="visionLogBox">{logs || 'Le journal est encore vide.'}</Box></Paper>}
       </Stack>
     </Container>

@@ -28,6 +28,7 @@ from indusense.vision.anomaly import (
     save_score_histogram,
 )
 from indusense.vision.carbon import VisionEmissionsTracker
+from indusense.vision.model_card import generate_vision_model_card
 from indusense.vision.model import build_autoencoder, keras_api, model_description, model_summary_text
 from indusense.vision.dataset import VisionPreparationConfig, load_model_input
 
@@ -232,6 +233,8 @@ def train_vision_autoencoder(
     report["mlflow_run_id"] = (
         _track_with_mlflow(report, run_dir, mlflow_tracking_uri, experiment_name) if mlflow_tracking_uri else None
     )
+    report["model_card_path"] = "README.md"
+    generate_vision_model_card(report, run_dir)
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
 

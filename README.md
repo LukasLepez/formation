@@ -39,6 +39,8 @@ L'interface écoute sur `http://127.0.0.1:5173` et proxyfie `/api` vers FastAPI.
 - Générer les graphes Bronze/Silver depuis le frontend via FastAPI.
 - Consulter l'historique des artefacts dans `backend/artifacts/ingestions/incidents/`.
 - Stocker les Gold Datasets dans `backend/artifacts/gold-datasets/`.
+- Générer automatiquement une model card Hugging Face pour chaque entraînement de
+  maintenance (usages, limites, métriques, seuil, impact CodeCarbon et contact).
 
 ## Supports de cours
 

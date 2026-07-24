@@ -29,6 +29,7 @@ from indusense.vision.anomaly import (
     save_score_histogram,
 )
 from indusense.vision_dataset import VisionPreparationConfig, load_model_input
+from indusense.vision.model_card import generate_vision_model_card
 
 LOGGER = logging.getLogger(__name__)
 
@@ -165,6 +166,8 @@ def train_patchcore(
         "mlflow_tracking_uri": mlflow_tracking_uri, "mlflow_run_id": None,
     }
     report["mlflow_run_id"] = _track_patchcore(report, run_dir, mlflow_tracking_uri, experiment_name)
+    report["model_card_path"] = "README.md"
+    generate_vision_model_card(report, run_dir)
     (run_dir / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return report
 

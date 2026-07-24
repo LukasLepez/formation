@@ -81,6 +81,7 @@ export function MaintenanceMlPage() {
   const [maintenanceLogs, setMaintenanceLogs] = useState('')
   const [maintenanceEvents, setMaintenanceEvents] = useState<MaintenanceMlEvent[]>([])
   const [maintenanceReport, setMaintenanceReport] = useState<MaintenanceMlReport | null>(null)
+  const [modelCard, setModelCard] = useState('')
   const [mlflowTracking, setMlflowTracking] = useState<MlflowTrackingSummary | null>(null)
   const [mlflowUiStatus, setMlflowUiStatus] = useState<MlflowUiStatus | null>(null)
   const [promotionResult, setPromotionResult] = useState<ModelPromotionResponse | null>(null)
@@ -152,6 +153,7 @@ export function MaintenanceMlPage() {
     setLaunchingMaintenanceRun(true)
     setError('')
     setMaintenanceReport(null)
+    setModelCard('')
     try {
       const payload = {
         label_column: mlLabel,
@@ -202,10 +204,15 @@ export function MaintenanceMlPage() {
     if (!runId) return
     setError('')
     try {
-      const report = await api<MaintenanceMlReport>(`/maintenance-ml-runs/${runId}/report`)
+      const [report, card] = await Promise.all([
+        api<MaintenanceMlReport>(`/maintenance-ml-runs/${runId}/report`),
+        apiText(`/maintenance-ml-runs/${runId}/model-card`),
+      ])
       setMaintenanceReport(report)
+      setModelCard(card)
     } catch (reportError) {
       setMaintenanceReport(null)
+      setModelCard('')
       setError(messageFrom(reportError))
     }
   }
@@ -296,6 +303,7 @@ export function MaintenanceMlPage() {
         return next
       })
       if (maintenanceReport?.run_id === runToDelete.run_id) setMaintenanceReport(null)
+      if (maintenanceReport?.run_id === runToDelete.run_id) setModelCard('')
       setRunToDelete(null)
       await refresh()
     } catch (deleteError) {
@@ -311,7 +319,7 @@ export function MaintenanceMlPage() {
   }, [])
 
   useEffect(() => {
-    if (reportTab > 2) setReportTab(0)
+    if (reportTab > 3) setReportTab(0)
   }, [reportTab])
 
   useEffect(() => {
@@ -659,6 +667,7 @@ export function MaintenanceMlPage() {
                 <Tab label="Synthèse" />
                 <Tab label="Détails modèles" />
                 <Tab label="Artefacts & explications" />
+                <Tab label="Model card" />
               </Tabs>
             </Paper>
             {maintenanceReport ? (
@@ -677,7 +686,7 @@ export function MaintenanceMlPage() {
                   </>
                 )}
                 {reportTab === 1 && (
-                <Paper className="panel">
+                  <Paper className="panel">
                     <SectionHeader title="Comparatif modèles" icon={<ScienceIcon fontSize="small" />} />
                     <MaintenanceComparison report={maintenanceReport} />
                   </Paper>
@@ -693,6 +702,45 @@ export function MaintenanceMlPage() {
                       <ShapExplanationPanel report={maintenanceReport} result={bestResult(maintenanceReport)} />
                     </Box>
                   </Box>
+                )}
+                {reportTab === 3 && (
+                  <Paper className="panel">
+                    <SectionHeader
+                      title="Model card Hugging Face"
+                      action={
+                        <Button
+                          variant="outlined"
+                          href={`/api/maintenance-ml-runs/${maintenanceReport.run_id}/model-card`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Ouvrir le Markdown
+                        </Button>
+                      }
+                    />
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      Cette fiche est générée depuis les données réelles du run : usages autorisés et hors périmètre,
+                      biais et limites, métriques au seuil retenu, impact CodeCarbon, version, auteurs et contact.
+                    </Alert>
+                    <Box
+                      component="pre"
+                      sx={{
+                        m: 0,
+                        p: 2,
+                        maxHeight: 680,
+                        overflow: 'auto',
+                        whiteSpace: 'pre-wrap',
+                        overflowWrap: 'anywhere',
+                        borderRadius: 2,
+                        bgcolor: 'action.hover',
+                        fontFamily: 'monospace',
+                        fontSize: '0.78rem',
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {modelCard || 'Model card indisponible.'}
+                    </Box>
+                  </Paper>
                 )}
               </>
             ) : (
